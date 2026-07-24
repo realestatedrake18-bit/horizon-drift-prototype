@@ -315,10 +315,15 @@ a {
 }
 
 .work-page {
+  position: relative;
+  z-index: 10;
   max-width: 42rem;
   margin: 0 auto;
   padding: 6rem 1.5rem 6rem;
   color: var(--fg);
+  background: rgba(5, 4, 6, 0.72);
+  backdrop-filter: blur(6px);
+  min-height: 100vh;
 }
 
 .work-back {

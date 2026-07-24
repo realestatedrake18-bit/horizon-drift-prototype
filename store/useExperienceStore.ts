@@ -45,6 +45,9 @@ interface ExperienceState {
 
   menuOpen: boolean;
   setMenuOpen: (value: boolean) => void;
+
+  scrollProgress: number;
+  setScrollProgress: (value: number) => void;
 }
 
 export const useExperienceStore = create<ExperienceState>((set) => ({
@@ -73,5 +76,8 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
 
   menuOpen: false,
-  setMenuOpen: (value) => set({ menuOpen: value })
+  setMenuOpen: (value) => set({ menuOpen: value }),
+
+  scrollProgress: 0,
+  setScrollProgress: (value) => set({ scrollProgress: value })
 }));

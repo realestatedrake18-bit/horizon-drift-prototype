@@ -36,7 +36,7 @@ export default function CanvasRoot() {
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
       dpr={dpr}
       gl={{ antialias: true, powerPreference: "high-performance", alpha: false }}
-      camera={{ position: [0, 0, 5.2], fov: 42, near: 0.1, far: 40 }}
+      camera={{ position: [0, 0, 7.6], fov: 42, near: 0.1, far: 40 }}
       onCreated={({ gl }) => {
         gl.setClearColor("#050406", 1);
       }}

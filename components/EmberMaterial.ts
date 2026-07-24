@@ -13,7 +13,7 @@ import { extend } from "@react-three/fiber";
 const EmberMaterial = shaderMaterial(
   {
     uTime: 0,
-    uSizeAttenuation: 140,
+    uSizeAttenuation: 10,
   },
   /* vertex */ `
   attribute float aSize;
@@ -41,9 +41,8 @@ const EmberMaterial = shaderMaterial(
     float d = length(uv);
     float glow = smoothstep(0.5, 0.0, d);
     float twinkle = 0.5 + 0.5 * sin(uTime * 1.6 + vPhase);
-    float alpha = glow * (0.35 + 0.65 * twinkle);
-    vec3 color = vColor * (1.0 + glow * 0.8);
-    gl_FragColor = vec4(color, alpha);
+    float alpha = glow * (0.25 + 0.5 * twinkle);
+    gl_FragColor = vec4(vColor, alpha);
   }
   `
 );

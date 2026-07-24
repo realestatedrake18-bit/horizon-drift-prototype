@@ -35,7 +35,7 @@ export default function Embers() {
     const seeds = new Float32Array(Math.max(count, 1));
 
     for (let i = 0; i < count; i++) {
-      const radius = 1.1 + Math.random() * 2.1;
+      const radius = 1.6 + Math.random() * 3.0;
       const theta = Math.random() * Math.PI * 2;
       const y = (Math.random() - 0.5) * 2.4;
       positions[i * 3] = Math.cos(theta) * radius;
@@ -50,7 +50,7 @@ export default function Embers() {
       colors[i * 3 + 1] = paletteColor.g;
       colors[i * 3 + 2] = paletteColor.b;
 
-      sizes[i] = 6 + Math.random() * 14;
+      sizes[i] = 0.5 + Math.random() * 0.9;
       phases[i] = Math.random() * Math.PI * 2;
       seeds[i] = Math.random() * Math.PI * 2;
     }

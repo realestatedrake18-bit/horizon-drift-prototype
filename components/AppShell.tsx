@@ -6,6 +6,7 @@ import { useExperienceStore } from "@/store/useExperienceStore";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useDeviceQuality } from "@/lib/useDeviceQuality";
 import { useLenis } from "@/lib/useLenis";
+import { useAmbientAudio } from "@/lib/useAmbientAudio";
 import CustomCursor from "@/components/CustomCursor";
 import LoadingScreen from "@/components/LoadingScreen";
 
@@ -25,6 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useReducedMotion();
   useDeviceQuality();
   useLenis();
+  useAmbientAudio();
 
   const status = useExperienceStore((s) => s.status);
 

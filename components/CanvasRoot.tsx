@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect } from "react";
@@ -7,11 +7,11 @@ import { useExperienceStore } from "@/store/useExperienceStore";
 import { QUALITY_SETTINGS } from "@/lib/quality";
 
 /**
- * Blueprint Â54: the persistent canvas. This mounts once and stays mounted
- * for the life of the app shell -- nothing here should be re-created when the
- * visitor moves between HTML routes layered on top of it. Visibility
- * handling (Â76) pauses the render loop when the tab is hidden so a bored
- * background tab doesn't keep burning battery.
+ * Blueprint Section 54: the persistent canvas. This mounts once and stays
+ * mounted for the life of the app shell -- nothing here should be re-created
+ * when the visitor moves between HTML routes layered on top of it.
+ * Visibility handling (Section 76) pauses the render loop when the tab is
+ * hidden so a bored background tab doesn't keep burning battery.
  *
  * The explicit style prop below is load-bearing: React Three Fiber's Canvas
  * applies its own inline position/width/height styles to this div by

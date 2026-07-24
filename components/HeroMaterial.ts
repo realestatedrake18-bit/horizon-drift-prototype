@@ -45,13 +45,24 @@ const HeroMaterial = shaderMaterial(
   uniform vec2 uPointer;
   uniform float uDissolve;
 
+  // Cosine palette (Inigo Quilez) -- fakes a thin-film / chrome iridescence
+  // sweep without needing a real environment map. Cheap on every quality
+  // tier and gives the activetheory.net-style shifting rim color.
+  vec3 iridescence(float t) {
+    vec3 a = vec3(0.55, 0.45, 0.65);
+    vec3 b = vec3(0.45, 0.4, 0.5);
+    vec3 c = vec3(1.0, 0.9, 0.6);
+    vec3 d = vec3(0.0, 0.2, 0.45);
+    return a + b * cos(6.28318 * (c * t + d));
+  }
+
   void main() {
     vec3 N = normalize(vNormal);
     vec3 viewDir = normalize(cameraPosition - vPosition);
     vec3 lightDir = normalize(vec3(3.0, 4.0, 2.0));
 
     float diffuse = max(dot(N, lightDir), 0.0);
-    float fresnel = pow(1.0 - max(dot(viewDir, N), 0.0), 2.4);
+    float fresnel = pow(1.0 - max(dot(viewDir, N), 0.0), 1.5);
 
     float pointerGlow = smoothstep(0.9, 0.0, distance(N.xy, uPointer)) * 0.4;
 
@@ -60,6 +71,12 @@ const HeroMaterial = shaderMaterial(
     float pulse = 0.85 + 0.15 * sin(uTime * 0.6);
 
     vec3 color = base * shade * pulse;
+
+    float iridT = fresnel * 2.2 + dot(N, viewDir) * 0.5 + uTime * 0.04;
+    vec3 sheen = iridescence(iridT) * (0.7 + 0.3 * pulse);
+    float sheenMix = smoothstep(0.05, 0.75, fresnel);
+    color = mix(color, sheen, sheenMix * 0.85);
+
     float alpha = 1.0 - smoothstep(0.0, 1.0, uDissolve);
 
     gl_FragColor = vec4(color, alpha);

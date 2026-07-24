@@ -27,6 +27,7 @@ export default function Interface() {
   }, [activeIndex]);
 
   return (
+    <>
     <div className="interface-layer">
       <header className="interface-header">
         <span className="wordmark">HORIZON&nbsp;DRIFT</span>
@@ -103,5 +104,7 @@ export default function Interface() {
         </span>
       </footer>
     </div>
+    <div className="scroll-spacer" aria-hidden="true" />
+    </>
   );
 }

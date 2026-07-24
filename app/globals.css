@@ -38,13 +38,18 @@ a {
 /* ---- Interface layer (Blueprint §1, §81) ---- */
 
 .interface-layer {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 10;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 2.5rem clamp(1.5rem, 5vw, 4rem);
+  pointer-events: none;
+}
+
+.scroll-spacer {
+  height: 250vh;
   pointer-events: none;
 }
 

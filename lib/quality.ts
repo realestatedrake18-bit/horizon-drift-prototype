@@ -36,6 +36,7 @@ export const QUALITY_SETTINGS: Record<
   QualityTier,
   {
     particleCount: number;
+    emberCount: number;
     dpr: [number, number];
     bloom: boolean;
     vignette: boolean;
@@ -43,7 +44,7 @@ export const QUALITY_SETTINGS: Record<
     shadows: boolean;
   }
 > = {
-  high: { particleCount: 3200, dpr: [1, 2], bloom: true, vignette: true, grain: true, shadows: true },
-  medium: { particleCount: 1400, dpr: [1, 1.5], bloom: true, vignette: true, grain: false, shadows: false },
-  low: { particleCount: 500, dpr: [1, 1], bloom: false, vignette: false, grain: false, shadows: false }
+  high: { particleCount: 3200, emberCount: 140, dpr: [1, 2], bloom: true, vignette: true, grain: true, shadows: true },
+  medium: { particleCount: 1400, emberCount: 70, dpr: [1, 1.5], bloom: true, vignette: true, grain: false, shadows: false },
+  low: { particleCount: 500, emberCount: 0, dpr: [1, 1], bloom: false, vignette: false, grain: false, shadows: false }
 };

@@ -4,6 +4,7 @@ import { Environment, ContactShadows } from "@react-three/drei";
 import CameraRig from "@/components/CameraRig";
 import HeroObject from "@/components/HeroObject";
 import ParticleField from "@/components/ParticleField";
+import Embers from "@/components/Embers";
 import PostFX from "@/components/PostFX";
 import { useExperienceStore } from "@/store/useExperienceStore";
 
@@ -35,6 +36,7 @@ export default function Scene() {
       </CameraRig>
 
       <ParticleField />
+      <Embers />
 
       {quality !== "low" && (
         <ContactShadows position={[0, -1.6, 0]} opacity={0.4} scale={8} blur={2.6} far={3} />

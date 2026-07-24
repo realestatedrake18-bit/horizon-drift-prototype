@@ -5,6 +5,10 @@ import Link from "next/link";
 import gsap from "gsap";
 import { useExperienceStore } from "@/store/useExperienceStore";
 import { projects } from "@/lib/projects";
+import PlaySection from "@/components/PlaySection";
+import GameModal from "@/components/GameModal";
+
+const HERO_FADE_END = 0.22;
 
 export default function Interface() {
   const soundOn = useExperienceStore((s) => s.soundOn);
@@ -13,10 +17,13 @@ export default function Interface() {
   const setStatus = useExperienceStore((s) => s.setStatus);
   const activeIndex = useExperienceStore((s) => s.activeIndex);
   const setActiveIndex = useExperienceStore((s) => s.setActiveIndex);
+  const scrollProgress = useExperienceStore((s) => s.scrollProgress);
 
   const focused = status === "focused";
   const contentRef = useRef<HTMLDivElement>(null);
   const active = projects[activeIndex] ?? projects[0];
+
+  const heroVisibility = Math.max(0, 1 - scrollProgress / HERO_FADE_END);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -39,7 +46,15 @@ export default function Interface() {
         </nav>
       </header>
 
-      <main className="interface-hero" id="work">
+      <main
+        className="interface-hero"
+        id="work"
+        style={{
+          opacity: heroVisibility,
+          transform: `translateY(${(1 - heroVisibility) * -16}px)`,
+          pointerEvents: heroVisibility < 0.1 ? "none" : "auto"
+        }}
+      >
         <h1>
           A single idea,
           <br />
@@ -105,6 +120,8 @@ export default function Interface() {
         </span>
       </footer>
     </div>
+    <PlaySection />
+    <GameModal />
     <div className="scroll-spacer" aria-hidden="true" />
     </>
   );

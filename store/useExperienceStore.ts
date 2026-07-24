@@ -48,6 +48,10 @@ interface ExperienceState {
 
   scrollProgress: number;
   setScrollProgress: (value: number) => void;
+
+  activeGame: string | null;
+  openGame: (id: string) => void;
+  closeGame: () => void;
 }
 
 export const useExperienceStore = create<ExperienceState>((set) => ({
@@ -79,5 +83,9 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setMenuOpen: (value) => set({ menuOpen: value }),
 
   scrollProgress: 0,
-  setScrollProgress: (value) => set({ scrollProgress: value })
+  setScrollProgress: (value) => set({ scrollProgress: value }),
+
+  activeGame: null,
+  openGame: (id) => set({ activeGame: id }),
+  closeGame: () => set({ activeGame: null })
 }));

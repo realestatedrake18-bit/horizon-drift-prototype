@@ -6,7 +6,17 @@ export const metadata: Metadata = {
   title: "Horizon Drift -- 3D Website Blueprint Prototype",
   description:
     "A single-scene visual prototype built from the 3D Website Creation Blueprint: React Three Fiber, a custom shader hero object, a GSAP-ready camera rig, and full HTML-layer accessibility.",
-  metadataBase: new URL("https://example.com")
+  metadataBase: new URL("https://horizon-drift-prototype.vercel.app"),
+  openGraph: {
+    title: "Horizon Drift",
+    description: "A single idea, held together in motion.",
+    type: "website"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Horizon Drift",
+    description: "A single idea, held together in motion."
+  }
 };
 
 export const viewport = {

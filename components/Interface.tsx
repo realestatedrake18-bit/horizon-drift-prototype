@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { useExperienceStore } from "@/store/useExperienceStore";
 import { projects } from "@/lib/projects";
@@ -33,8 +34,8 @@ export default function Interface() {
         <span className="wordmark">HORIZON&nbsp;DRIFT</span>
         <nav aria-label="Primary">
           <a href="#work">Work</a>
-          <span className="nav-stub">Studio</span>
-          <span className="nav-stub">Contact</span>
+          <Link href="/studio">Studio</Link>
+          <Link href="/contact">Contact</Link>
         </nav>
       </header>
 

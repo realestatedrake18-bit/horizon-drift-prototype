@@ -1,7 +1,12 @@
+import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
-import EmberCatch from "./EmberCatch";
-import OrbitDodge from "./OrbitDodge";
-import ShardMatch from "./ShardMatch";
+
+// Lazy-loaded: each game's R3F scene only ships to the browser once the
+// visitor actually opens it, keeping the three.js/game code out of the
+// homepage's initial bundle. ssr:false because they touch window/canvas.
+const EmberCatch = dynamic(() => import("./EmberCatch"), { ssr: false });
+const OrbitDodge = dynamic(() => import("./OrbitDodge"), { ssr: false });
+const ShardMatch = dynamic(() => import("./ShardMatch"), { ssr: false });
 
 export interface GameDef {
   id: string;

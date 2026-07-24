@@ -548,15 +548,6 @@ a {
   background: radial-gradient(circle at 50% 30%, rgba(143, 107, 255, 0.12), rgba(5, 4, 6, 0.6));
 }
 
-.game-stage--match {
-  height: auto;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  background: none;
-}
-
 .game-hud {
   position: absolute;
   top: 0.75rem;
@@ -570,10 +561,6 @@ a {
   opacity: 0.7;
   z-index: 1;
   pointer-events: none;
-}
-
-.game-stage--match .game-hud {
-  position: static;
 }
 
 .game-canvas {
@@ -599,13 +586,6 @@ a {
   z-index: 2;
 }
 
-.game-stage--match .game-overlay {
-  position: fixed;
-  inset: 0;
-  border-radius: 0;
-  z-index: 41;
-}
-
 .game-overlay-title {
   font-size: 1.3rem;
   margin: 0;
@@ -618,64 +598,9 @@ a {
   margin: 0;
 }
 
-.match-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.6rem;
-}
-
-.match-tile {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 0.6rem;
-  border: 1px solid rgba(232, 226, 214, 0.16);
-  background: rgba(232, 226, 214, 0.05);
-  cursor: pointer;
-  perspective: 600px;
-}
-
-.match-tile-face {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.55rem;
-  backface-visibility: hidden;
-  transition: transform 0.4s ease;
-  font-size: 1.4rem;
-}
-
-.match-tile-front {
-  background: rgba(143, 107, 255, 0.1);
-  transform: rotateY(0deg);
-}
-
-.match-tile-back {
-  background: rgba(232, 226, 214, 0.08);
-  color: var(--accent);
-  transform: rotateY(180deg);
-}
-
-.match-tile--flipped .match-tile-front {
-  transform: rotateY(180deg);
-}
-
-.match-tile--flipped .match-tile-back {
-  transform: rotateY(360deg);
-}
-
-.match-tile--matched .match-tile-back {
-  color: #ffc46b;
-}
-
 @media (max-width: 640px) {
   .play-heading {
     max-width: none;
-  }
-
-  .match-grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 
   .game-modal-panel {

@@ -1,42 +1,179 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import * as THREE from "three";
 
 /**
- * Survival game: steer a small mote around the canvas, dodging drifting
- * shards that spawn faster the longer you last. Echoes the site's
- * orbit-camera / drifting-shape language (CameraRig, HeroObject) in
- * miniature, playable form.
+ * 3D survival game: shards fly out of the screen toward the player's plane,
+ * growing larger as they approach (real perspective, not a fake scale
+ * trick). Steer the mote with the pointer, raycast onto a fixed plane.
  */
 
-interface Shard {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
+const PLAYER_Z = 4;
+
+interface ShardData {
+  id: number;
+  position: [number, number, number];
+  velocity: THREE.Vector3;
   size: number;
-  rot: number;
-  vrot: number;
+  spin: number;
+}
+
+let shardSeq = 0;
+
+function Player({ playerRef }: { playerRef: React.MutableRefObject<THREE.Vector3> }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), -PLAYER_Z), []);
+  const point = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(({ camera, raycaster, pointer }) => {
+    raycaster.setFromCamera(pointer, camera);
+    raycaster.ray.intersectPlane(plane, point);
+    const mesh = ref.current;
+    if (!mesh) return;
+    mesh.position.x = THREE.MathUtils.lerp(mesh.position.x, point.x, 0.35);
+    mesh.position.y = THREE.MathUtils.lerp(mesh.position.y, point.y, 0.35);
+    playerRef.current.set(mesh.position.x, mesh.position.y, PLAYER_Z);
+  });
+
+  return (
+    <mesh ref={ref} position={[0, 0, PLAYER_Z]}>
+      <sphereGeometry args={[0.26, 16, 16]} />
+      <meshBasicMaterial color="#ff9d4d" />
+    </mesh>
+  );
+}
+
+function Shard({
+  data,
+  playerRef,
+  onExpire,
+  onHit
+}: {
+  data: ShardData;
+  playerRef: React.MutableRefObject<THREE.Vector3>;
+  onExpire: (id: number) => void;
+  onHit: () => void;
+}) {
+  const ref = useRef<THREE.Mesh>(null);
+  const doneRef = useRef(false);
+
+  useFrame((_, delta) => {
+    const mesh = ref.current;
+    if (!mesh || doneRef.current) return;
+    mesh.position.addScaledVector(data.velocity, delta);
+    mesh.rotation.x += delta * data.spin;
+    mesh.rotation.y += delta * data.spin * 0.6;
+
+    if (mesh.position.z > PLAYER_Z + 1.5) {
+      doneRef.current = true;
+      onExpire(data.id);
+      return;
+    }
+    const dx = mesh.position.x - playerRef.current.x;
+    const dy = mesh.position.y - playerRef.current.y;
+    const dz = mesh.position.z - playerRef.current.z;
+    if (Math.abs(dz) < 0.6 && Math.sqrt(dx * dx + dy * dy) < data.size * 0.6 + 0.35) {
+      doneRef.current = true;
+      onHit();
+    }
+  });
+
+  return (
+    <mesh ref={ref} position={data.position}>
+      <octahedronGeometry args={[data.size, 0]} />
+      <meshStandardMaterial color="#8f6bff" emissive="#4c2f99" emissiveIntensity={0.6} />
+    </mesh>
+  );
+}
+
+function ShardField({
+  playerRef,
+  playing,
+  onHit
+}: {
+  playerRef: React.MutableRefObject<THREE.Vector3>;
+  playing: boolean;
+  onHit: () => void;
+}) {
+  const [shards, setShards] = useState<ShardData[]>([]);
+  const spawnAcc = useRef(0);
+  const elapsedMs = useRef(0);
+  const hitRef = useRef(false);
+
+  useEffect(() => {
+    if (!playing) {
+      setShards([]);
+      spawnAcc.current = 0;
+      elapsedMs.current = 0;
+      hitRef.current = false;
+    }
+  }, [playing]);
+
+  useFrame((_, delta) => {
+    if (!playing || hitRef.current) return;
+    elapsedMs.current += delta * 1000;
+    spawnAcc.current += delta * 1000;
+    const spawnEvery = Math.max(260, 900 - elapsedMs.current / 40);
+    if (spawnAcc.current > spawnEvery) {
+      spawnAcc.current = 0;
+      shardSeq += 1;
+      const spawn = new THREE.Vector3(
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 6,
+        -16
+      );
+      const target = new THREE.Vector3(
+        (Math.random() - 0.5) * 2.6,
+        (Math.random() - 0.5) * 2.6,
+        PLAYER_Z + 0.2
+      );
+      const travel = Math.max(0.9, 2.6 - elapsedMs.current / 60000);
+      const velocity = target.clone().sub(spawn).divideScalar(travel);
+      setShards((prev) => [
+        ...prev,
+        {
+          id: shardSeq,
+          position: [spawn.x, spawn.y, spawn.z],
+          velocity,
+          size: 0.32 + Math.random() * 0.22,
+          spin: (Math.random() - 0.5) * 2
+        }
+      ]);
+    }
+  });
+
+  const remove = (id: number) => setShards((prev) => prev.filter((s) => s.id !== id));
+
+  return (
+    <>
+      {shards.map((s) => (
+        <Shard
+          key={s.id}
+          data={s}
+          playerRef={playerRef}
+          onExpire={remove}
+          onHit={() => {
+            if (hitRef.current) return;
+            hitRef.current = true;
+            onHit();
+          }}
+        />
+      ))}
+    </>
+  );
 }
 
 export default function OrbitDodge() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const shardsRef = useRef<Shard[]>([]);
-  const playerRef = useRef({ x: 0.5, y: 0.5 });
-  const spawnAccRef = useRef(0);
-  const rafRef = useRef<number>();
-  const startRef = useRef(0);
-  const aliveRef = useRef(true);
-
+  const playerRef = useRef(new THREE.Vector3(0, 0, PLAYER_Z));
   const [elapsed, setElapsed] = useState(0);
   const [best, setBest] = useState(0);
   const [phase, setPhase] = useState<"ready" | "playing" | "over">("ready");
+  const startRef = useRef(0);
 
   const start = () => {
-    shardsRef.current = [];
-    spawnAccRef.current = 0;
-    aliveRef.current = true;
-    playerRef.current = { x: 0.5, y: 0.5 };
+    playerRef.current.set(0, 0, PLAYER_Z);
     setElapsed(0);
     setPhase("playing");
     startRef.current = performance.now();
@@ -44,133 +181,16 @@ export default function OrbitDodge() {
 
   useEffect(() => {
     if (phase !== "playing") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const setPointer = (clientX: number, clientY: number) => {
-      const rect = canvas.getBoundingClientRect();
-      playerRef.current = {
-        x: Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)),
-        y: Math.min(1, Math.max(0, (clientY - rect.top) / rect.height))
-      };
-    };
-    const handleMove = (evt: PointerEvent) => setPointer(evt.clientX, evt.clientY);
-    canvas.addEventListener("pointermove", handleMove);
-
-    let lastTime = performance.now();
-
-    const tick = (now: number) => {
-      const dt = Math.min(now - lastTime, 48);
-      lastTime = now;
-      const t = now - startRef.current;
-      setElapsed(Math.floor(t / 1000));
-
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-
-      spawnAccRef.current += dt;
-      const spawnEvery = Math.max(260, 900 - t / 40);
-      if (spawnAccRef.current > spawnEvery) {
-        spawnAccRef.current = 0;
-        const edge = Math.floor(Math.random() * 4);
-        const pos =
-          edge === 0
-            ? { x: Math.random() * w, y: -20 }
-            : edge === 1
-            ? { x: w + 20, y: Math.random() * h }
-            : edge === 2
-            ? { x: Math.random() * w, y: h + 20 }
-            : { x: -20, y: Math.random() * h };
-        const cx = w / 2 + (Math.random() - 0.5) * w * 0.3;
-        const cy = h / 2 + (Math.random() - 0.5) * h * 0.3;
-        const ang = Math.atan2(cy - pos.y, cx - pos.x);
-        const speed = 0.045 + Math.random() * 0.045 + Math.min(0.05, t / 150000);
-        shardsRef.current.push({
-          x: pos.x,
-          y: pos.y,
-          vx: Math.cos(ang) * speed,
-          vy: Math.sin(ang) * speed,
-          size: 9 + Math.random() * 7,
-          rot: Math.random() * Math.PI,
-          vrot: (Math.random() - 0.5) * 0.004
-        });
-      }
-
-      ctx.clearRect(0, 0, w, h);
-
-      const px = playerRef.current.x * w;
-      const py = playerRef.current.y * h;
-
-      let hit = false;
-      shardsRef.current = shardsRef.current.filter((s) => {
-        s.x += s.vx * dt;
-        s.y += s.vy * dt;
-        s.rot += s.vrot * dt;
-        if (s.x < -60 || s.x > w + 60 || s.y < -60 || s.y > h + 60) return false;
-
-        ctx.save();
-        ctx.translate(s.x, s.y);
-        ctx.rotate(s.rot);
-        ctx.fillStyle = "rgba(143, 107, 255, 0.85)";
-        ctx.beginPath();
-        ctx.moveTo(0, -s.size);
-        ctx.lineTo(s.size * 0.72, 0);
-        ctx.lineTo(0, s.size);
-        ctx.lineTo(-s.size * 0.72, 0);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-
-        const dx = s.x - px;
-        const dy = s.y - py;
-        if (Math.sqrt(dx * dx + dy * dy) < s.size * 0.6 + 8) hit = true;
-        return true;
-      });
-
-      const grd = ctx.createRadialGradient(px, py, 0, px, py, 16);
-      grd.addColorStop(0, "#ffe3c2");
-      grd.addColorStop(1, "rgba(255,158,77,0)");
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.arc(px, py, 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#ff9d4d";
-      ctx.beginPath();
-      ctx.arc(px, py, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (hit) {
-        aliveRef.current = false;
-        const seconds = Math.floor(t / 1000);
-        setBest((b) => Math.max(b, seconds));
-        setPhase("over");
-        return;
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      canvas.removeEventListener("pointermove", handleMove);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((performance.now() - startRef.current) / 1000));
+    }, 200);
+    return () => window.clearInterval(id);
   }, [phase]);
+
+  const handleHit = () => {
+    setBest((b) => Math.max(b, Math.floor((performance.now() - startRef.current) / 1000)));
+    setPhase("over");
+  };
 
   return (
     <div className="game-stage">
@@ -178,7 +198,15 @@ export default function OrbitDodge() {
         <span>{phase === "playing" ? `${elapsed}s` : "Orbit Dodge"}</span>
         <span>Best {best}s</span>
       </div>
-      <canvas ref={canvasRef} className="game-canvas" />
+      <div className="game-canvas">
+        <Canvas camera={{ position: [0, 0, 7], fov: 50 }} dpr={[1, 1.5]}>
+          <ambientLight intensity={0.4} />
+          <pointLight position={[3, 3, 5]} intensity={0.7} />
+          <pointLight position={[-3, -2, -6]} intensity={0.4} color="#8f6bff" />
+          <Player playerRef={playerRef} />
+          <ShardField playerRef={playerRef} playing={phase === "playing"} onHit={handleHit} />
+        </Canvas>
+      </div>
       {phase !== "playing" && (
         <div className="game-overlay">
           {phase === "over" ? (
@@ -188,7 +216,7 @@ export default function OrbitDodge() {
             </>
           ) : (
             <p className="game-overlay-sub">
-              Move your mote with the pointer. Dodge the drifting shards.
+              Move your mote with the pointer. Dodge the shards flying at you.
             </p>
           )}
           <button type="button" className="cta" onClick={start}>

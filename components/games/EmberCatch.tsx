@@ -1,45 +1,145 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import * as THREE from "three";
 
 /**
- * Reflex game: embers drift up from the bottom of the canvas, click them
- * before they fade out at the top. Ties into the site's ember-particle
- * motif (components/Embers.tsx) so it feels native to the world, not bolted on.
+ * 3D reflex game: embers spawn far in the scene and drift up and toward the
+ * camera, growing with real perspective as they approach. Click them (R3F's
+ * built-in raycasting handles hit-testing against actual mesh position/size)
+ * before they drift past. Genuinely WebGL, not a 2D canvas illusion.
  */
-
-interface Ember {
-  x: number;
-  y: number;
-  r: number;
-  speed: number;
-  hue: string;
-  born: number;
-  caught: boolean;
-  dead: boolean;
-}
 
 const PALETTE = ["#ff6a3d", "#ff9d4d", "#ffc46b", "#8f6bff"];
 const ROUND_MS = 30000;
 
-export default function EmberCatch() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const embersRef = useRef<Ember[]>([]);
-  const scoreRef = useRef(0);
-  const missedRef = useRef(0);
-  const rafRef = useRef<number>();
-  const startRef = useRef<number>(0);
-  const spawnAccRef = useRef(0);
+interface EmberData {
+  id: number;
+  position: [number, number, number];
+  speed: number;
+  size: number;
+  color: string;
+  seed: number;
+}
 
+let emberSeq = 0;
+
+function Ember({
+  data,
+  onExpire,
+  onCatch
+}: {
+  data: EmberData;
+  onExpire: (id: number) => void;
+  onCatch: (id: number) => void;
+}) {
+  const ref = useRef<THREE.Mesh>(null);
+  const born = useRef(performance.now());
+  const caughtRef = useRef(false);
+
+  useFrame((_, delta) => {
+    const mesh = ref.current;
+    if (!mesh || caughtRef.current) return;
+    mesh.position.y += data.speed * delta;
+    mesh.position.z += 0.4 * delta;
+    const age = (performance.now() - born.current) / 1000;
+    const twinkle = 0.6 + 0.4 * Math.sin(age * 6 + data.seed);
+    const mat = mesh.material as THREE.MeshBasicMaterial;
+    mat.opacity = twinkle;
+    if (mesh.position.y > 5.5 || mesh.position.z > 5) {
+      onExpire(data.id);
+    }
+  });
+
+  return (
+    <mesh
+      ref={ref}
+      position={data.position}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (caughtRef.current) return;
+        caughtRef.current = true;
+        onCatch(data.id);
+      }}
+    >
+      <sphereGeometry args={[data.size, 12, 12]} />
+      <meshBasicMaterial color={data.color} transparent opacity={0.85} />
+    </mesh>
+  );
+}
+
+function EmberField({
+  playing,
+  onScore
+}: {
+  playing: boolean;
+  onScore: () => void;
+}) {
+  const [embers, setEmbers] = useState<EmberData[]>([]);
+  const spawnAcc = useRef(0);
+  const elapsedMs = useRef(0);
+
+  useEffect(() => {
+    if (!playing) {
+      setEmbers([]);
+      elapsedMs.current = 0;
+      spawnAcc.current = 0;
+    }
+  }, [playing]);
+
+  useFrame((_, delta) => {
+    if (!playing) return;
+    elapsedMs.current += delta * 1000;
+    spawnAcc.current += delta * 1000;
+    const spawnEvery = 520 - Math.min(280, elapsedMs.current / 100);
+    if (spawnAcc.current > spawnEvery) {
+      spawnAcc.current = 0;
+      emberSeq += 1;
+      setEmbers((prev) => [
+        ...prev,
+        {
+          id: emberSeq,
+          position: [
+            (Math.random() - 0.5) * 7,
+            -3.2 - Math.random() * 0.6,
+            -6 - Math.random() * 4
+          ],
+          speed: 0.9 + Math.random() * 0.9,
+          size: 0.34 + Math.random() * 0.24,
+          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          seed: Math.random() * 10
+        }
+      ]);
+    }
+  });
+
+  const remove = (id: number) => setEmbers((prev) => prev.filter((e) => e.id !== id));
+
+  return (
+    <>
+      {embers.map((e) => (
+        <Ember
+          key={e.id}
+          data={e}
+          onExpire={remove}
+          onCatch={(id) => {
+            remove(id);
+            onScore();
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+export default function EmberCatch() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(ROUND_MS / 1000);
   const [phase, setPhase] = useState<"ready" | "playing" | "over">("ready");
+  const startRef = useRef(0);
 
   const start = () => {
-    embersRef.current = [];
-    scoreRef.current = 0;
-    missedRef.current = 0;
-    spawnAccRef.current = 0;
     setScore(0);
     setTimeLeft(ROUND_MS / 1000);
     setPhase("playing");
@@ -48,110 +148,12 @@ export default function EmberCatch() {
 
   useEffect(() => {
     if (phase !== "playing") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    let lastTime = performance.now();
-
-    const tick = (now: number) => {
-      const dt = Math.min(now - lastTime, 48);
-      lastTime = now;
-      const elapsed = now - startRef.current;
-      const remaining = Math.max(0, ROUND_MS - elapsed);
+    const id = window.setInterval(() => {
+      const remaining = Math.max(0, ROUND_MS - (performance.now() - startRef.current));
       setTimeLeft(Math.ceil(remaining / 1000));
-
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-
-      spawnAccRef.current += dt;
-      const spawnEvery = 520 - Math.min(280, elapsed / 100);
-      if (spawnAccRef.current > spawnEvery) {
-        spawnAccRef.current = 0;
-        embersRef.current.push({
-          x: 24 + Math.random() * (w - 48),
-          y: h + 20,
-          r: 10 + Math.random() * 12,
-          speed: 0.035 + Math.random() * 0.05,
-          hue: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-          born: now,
-          caught: false,
-          dead: false
-        });
-      }
-
-      ctx.clearRect(0, 0, w, h);
-
-      for (const e of embersRef.current) {
-        if (e.dead) continue;
-        e.y -= e.speed * dt;
-        if (e.y < -30) {
-          e.dead = true;
-          if (!e.caught) missedRef.current += 1;
-          continue;
-        }
-        const age = (now - e.born) / 1000;
-        const twinkle = 0.65 + 0.35 * Math.sin(age * 6 + e.x);
-        const grd = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r * 2);
-        grd.addColorStop(0, e.hue);
-        grd.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.globalAlpha = e.caught ? 0 : twinkle;
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r * 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-
-      embersRef.current = embersRef.current.filter((e) => !e.dead);
-
-      if (remaining <= 0) {
-        setScore(scoreRef.current);
-        setPhase("over");
-        return;
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-
-    const handleClick = (evt: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = evt.clientX - rect.left;
-      const y = evt.clientY - rect.top;
-      for (const e of embersRef.current) {
-        if (e.caught || e.dead) continue;
-        const dx = e.x - x;
-        const dy = e.y - y;
-        if (Math.sqrt(dx * dx + dy * dy) < e.r + 14) {
-          e.caught = true;
-          e.dead = true;
-          scoreRef.current += 1;
-          setScore(scoreRef.current);
-          break;
-        }
-      }
-    };
-    canvas.addEventListener("pointerdown", handleClick);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      canvas.removeEventListener("pointerdown", handleClick);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+      if (remaining <= 0) setPhase("over");
+    }, 200);
+    return () => window.clearInterval(id);
   }, [phase]);
 
   return (
@@ -160,7 +162,13 @@ export default function EmberCatch() {
         <span>Score {score}</span>
         <span>{phase === "playing" ? `${timeLeft}s` : "Ember Catch"}</span>
       </div>
-      <canvas ref={canvasRef} className="game-canvas" />
+      <div className="game-canvas">
+        <Canvas camera={{ position: [0, 0, 6], fov: 55 }} dpr={[1, 1.5]}>
+          <ambientLight intensity={0.35} />
+          <pointLight position={[3, 3, 5]} intensity={0.8} />
+          <EmberField playing={phase === "playing"} onScore={() => setScore((s) => s + 1)} />
+        </Canvas>
+      </div>
       {phase !== "playing" && (
         <div className="game-overlay">
           {phase === "over" ? (
@@ -170,7 +178,7 @@ export default function EmberCatch() {
             </>
           ) : (
             <p className="game-overlay-sub">
-              Click the embers before they drift away. 30 seconds.
+              Click the embers as they drift toward you. 30 seconds.
             </p>
           )}
           <button type="button" className="cta" onClick={start}>

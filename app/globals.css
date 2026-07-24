@@ -1,0 +1,393 @@
+:root {
+  --bg: #050406;
+  --fg: #e8e2d6;
+  --accent: #8f6bff;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+.experience-root {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.experience-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+/* ---- Interface layer (Blueprint §1, §81) ---- */
+
+.interface-layer {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2.5rem clamp(1.5rem, 5vw, 4rem);
+  pointer-events: none;
+}
+
+.interface-layer a,
+.interface-layer button {
+  pointer-events: auto;
+}
+
+.interface-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.interface-header nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.interface-header nav a {
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+}
+
+.interface-header nav a:hover,
+.interface-header nav a:focus-visible {
+  opacity: 1;
+}
+
+.interface-hero {
+  max-width: 42rem;
+}
+
+.interface-hero h1 {
+  font-size: clamp(2.2rem, 6vw, 4.4rem);
+  font-weight: 500;
+  line-height: 1.05;
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.interface-hero p {
+  font-size: 1rem;
+  line-height: 1.6;
+  opacity: 0.72;
+  max-width: 34rem;
+  margin: 0 0 2rem;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(232, 226, 214, 0.35);
+  padding: 0.9rem 1.6rem;
+  border-radius: 999px;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.cta:hover,
+.cta:focus-visible {
+  border-color: var(--accent);
+  background: rgba(143, 107, 255, 0.12);
+}
+
+.interface-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.sound-toggle {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  padding: 0.4rem 0;
+}
+
+.sound-toggle:focus-visible,
+.cta:focus-visible,
+.interface-header nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.scroll-cue {
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* ---- Loading screen (Blueprint §66) ---- */
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+.loading-screen--hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-mark {
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* ---- Custom cursor (Blueprint §49) ---- */
+
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.05s linear;
+  mix-blend-mode: screen;
+}
+
+/* ---- Responsive treatment (Blueprint §77-79) ---- */
+
+@media (max-width: 640px) {
+  .interface-header nav {
+    gap: 1.1rem;
+  }
+
+  .interface-hero p {
+    font-size: 0.92rem;
+  }
+
+  .custom-cursor {
+    display: none;
+  }
+}
+
+/* ---- Reduced motion (Blueprint §80) ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue {
+    animation: none;
+  }
+}
+
+.nav-stub {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.project-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(26rem, 90vw);
+  padding: 6rem 2.5rem 2.5rem;
+  background: rgba(5, 4, 6, 0.72);
+  backdrop-filter: blur(6px);
+  border-left: 1px solid rgba(232, 226, 214, 0.12);
+  transform: translateX(100%);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.project-panel--visible {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.project-panel-eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 0.75rem;
+}
+
+.project-panel h2 {
+  font-size: 2rem;
+  margin: 0 0 1rem;
+}
+
+.project-panel p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  opacity: 0.75;
+}
+
+.cta {
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+.project-panel-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.project-panel-dot {
+  background: none;
+  border: 1px solid rgba(232, 226, 214, 0.25);
+  color: inherit;
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+}
+
+.project-panel-dot:hover {
+  opacity: 0.85;
+}
+
+.project-panel-dot--active {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.work-page {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 6rem 1.5rem 6rem;
+  color: var(--fg);
+}
+
+.work-back {
+  display: inline-block;
+  margin-bottom: 3rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  color: inherit;
+  text-decoration: none;
+}
+
+.work-back:hover {
+  opacity: 1;
+}
+
+.work-page h1 {
+  font-size: 2.5rem;
+  margin: 0 0 2.5rem;
+}
+
+.work-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.work-list-item {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(232, 226, 214, 0.12);
+}
+
+.work-list-eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 0.5rem;
+}
+
+.work-list-title {
+  display: block;
+  font-size: 1.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.work-list-item p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.work-detail-body {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  opacity: 0.85;
+  max-width: 38rem;
+}
+
+.project-panel-link {
+  display: inline-block;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.project-panel-link:hover {
+  text-decoration: underline;
+}

@@ -5,14 +5,15 @@ import { shaderMaterial } from "@react-three/drei";
 import { extend } from "@react-three/fiber";
 
 /**
- * Blueprint §19 / §25: a small GLSL material for the hero object.
- * Fresnel-driven rim light + a slow-drifting noise field gives the object a
- * "breathing energy" look without any texture maps — cheap on mobile and
+ * Blueprint Section 19 / Section 25: a small GLSL material for the hero object.
+ * A real per-facet diffuse term (surface normal vs. the scene's key light
+ * direction) plus a fresnel rim and a slow-drifting pulse gives the object
+ * actual dimensional shading instead of a flat glow -- cheap on mobile and
  * art-directable purely through uniforms.
  *
- * Uniforms are the JS -> GPU bridge (Blueprint §19 "Uniforms"): uTime drives
+ * Uniforms are the JS -> GPU bridge (Blueprint Section 19 "Uniforms"): uTime drives
  * idle animation, uPointer lets the surface react subtly to the cursor, and
- * uDissolve is reserved for a future transition (Blueprint §52) that eats the
+ * uDissolve is reserved for a future transition (Blueprint Section 52) that eats the
  * object away when the visitor navigates elsewhere.
  */
 const HeroMaterial = shaderMaterial(
@@ -21,52 +22,48 @@ const HeroMaterial = shaderMaterial(
     uColor: new THREE.Color("#e8e2d6"),
     uAccent: new THREE.Color("#8f6bff"),
     uPointer: new THREE.Vector2(0, 0),
-    uDissolve: 0
+    uDissolve: 0,
   },
   /* vertex */ `
-    varying vec3 vNormal;
-    varying vec3 vPosition;
-    uniform float uTime;
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  uniform float uTime;
 
-    // cheap 3D noise (Ashima-style simplex is overkill for this scale)
-    float hash(vec3 p) {
-      p = fract(p * 0.3183099 + 0.1);
-      p *= 17.0;
-      return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-    }
-
-    void main() {
-      vNormal = normalize(normalMatrix * normal);
-      vec3 pos = position;
-      float n = hash(position * 2.0 + uTime * 0.05);
-      pos += normal * (n - 0.5) * 0.035;
-      vPosition = pos;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    }
+  void main() {
+    vNormal = normalize(mat3(modelMatrix) * normal);
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vPosition = worldPos.xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
   `,
   /* fragment */ `
-    varying vec3 vNormal;
-    varying vec3 vPosition;
-    uniform float uTime;
-    uniform vec3 uColor;
-    uniform vec3 uAccent;
-    uniform vec2 uPointer;
-    uniform float uDissolve;
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  uniform float uTime;
+  uniform vec3 uColor;
+  uniform vec3 uAccent;
+  uniform vec2 uPointer;
+  uniform float uDissolve;
 
-    void main() {
-      vec3 viewDir = normalize(cameraPosition - vPosition);
-      float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 2.4);
+  void main() {
+    vec3 N = normalize(vNormal);
+    vec3 viewDir = normalize(cameraPosition - vPosition);
+    vec3 lightDir = normalize(vec3(3.0, 4.0, 2.0));
 
-      float pointerGlow = smoothstep(0.9, 0.0, distance(vNormal.xy, uPointer)) * 0.4;
+    float diffuse = max(dot(N, lightDir), 0.0);
+    float fresnel = pow(1.0 - max(dot(viewDir, N), 0.0), 2.4);
 
-      vec3 base = mix(uColor, uAccent, fresnel * 0.85 + pointerGlow);
-      float pulse = 0.85 + 0.15 * sin(uTime * 0.6);
+    float pointerGlow = smoothstep(0.9, 0.0, distance(N.xy, uPointer)) * 0.4;
 
-      vec3 color = base * pulse;
-      float alpha = 1.0 - smoothstep(0.0, 1.0, uDissolve);
+    vec3 base = mix(uColor, uAccent, fresnel * 0.85 + pointerGlow);
+    float shade = 0.35 + 0.65 * diffuse;
+    float pulse = 0.85 + 0.15 * sin(uTime * 0.6);
 
-      gl_FragColor = vec4(color, alpha);
-    }
+    vec3 color = base * shade * pulse;
+    float alpha = 1.0 - smoothstep(0.0, 1.0, uDissolve);
+
+    gl_FragColor = vec4(color, alpha);
+  }
   `
 );
 
